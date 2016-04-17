@@ -1,0 +1,23 @@
+.gradle
+.DS_Store
+/build
+
+
+#generated files
+bin/
+gen/
+
+#built application files
+*.apk
+*.ap_
+
+#files for the dex VM
+*.dex
+
+*.class
+
+**/*.iml
+
+.idea/
+
+**/build/*
