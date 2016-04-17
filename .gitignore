@@ -21,3 +21,5 @@ gen/
 .idea/
 
 **/build/*
+
+local.properties
