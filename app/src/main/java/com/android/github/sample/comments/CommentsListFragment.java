@@ -9,24 +9,20 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import com.android.github.sample.R;
 import com.android.github.sample.SimpleDividerItemDecoration;
+import com.android.github.sample.model.Comments;
 import com.android.github.sample.services.GitHubClient;
-import com.android.volley.NetworkError;
-import com.android.volley.NoConnectionError;
-import com.android.volley.Response;
-import com.android.volley.ServerError;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonArrayRequest;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.android.github.sample.services.IssueService;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import rx.Observable;
+import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
 
 
 /**
@@ -36,9 +32,9 @@ import java.util.List;
  * Created by Ramesh on 3/27/2016.
  */
 public class CommentsListFragment extends Fragment {
-
+    private static final String TAG = CommentsListFragment.class.getSimpleName();
     private static final String ARG_COMMENT_URL = "comment_url";
-    private String mCommentUrl;//Github comments url
+    private String mNumber;//Github comments url
     public List<CommentInfo> mCommentsList;//comments list
 
     private CommentsListAdapter mIssueListRecyclerViewAdapter;//comments list adapter
@@ -62,7 +58,7 @@ public class CommentsListFragment extends Fragment {
 
         //retrieve the comments url from bundle argument
         if (getArguments() != null) {
-            mCommentUrl = getArguments().getString(ARG_COMMENT_URL);
+            mNumber = getArguments().getString(ARG_COMMENT_URL);
         }
 
         //get comments list
@@ -96,64 +92,49 @@ public class CommentsListFragment extends Fragment {
 
     //Request GitHub issue comments list
     private void requestCommentsList() {
-        String url = mCommentUrl;
+        String number = mNumber;
 
-        JsonArrayRequest jreq = new JsonArrayRequest(url,
-                new Response.Listener<JSONArray>() {
+        IssueService issueService = GitHubClient.getInstance().getRetroFitInstance().create(IssueService.class);
+        Observable<List<Comments>> commentsList = issueService.getIssueComments("rails", "rails", number);
+
+        commentsList.subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<List<Comments>>() {
+                    @Override
+                    public void onCompleted() {
+                        Log.d(TAG, "onCompleted");
+                    }
 
                     @Override
-                    public void onResponse(JSONArray response) {
-                        if (response.length() > 0)
-                            for (int i = 0; i < response.length(); i++) {
-                                try {
-                                    JSONObject jo = response.getJSONObject(i);
-                                    JSONObject user = jo.getJSONObject("user");
-
-                                    String login = user.getString("login");
-                                    String body = jo.getString("body");
-
-                                    mCommentsList.add(new CommentInfo(login,
-                                            body));
-
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        else {
-                            String login = "no comments";
-                            String body = "";
-                            mCommentsList.add(new CommentInfo(login,
-                                    body));
-                        }
-
-                        mIssueListRecyclerViewAdapter.notifyDataSetChanged();
+                    public void onError(Throwable e) {
+                        Log.d(TAG, "onError");
                     }
-                }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.e(CommentsListFragment.class.getSimpleName(), "onErrorResponse " + error);
-                String msg = null;
-                if (error instanceof NoConnectionError) {
-                    msg = "No Connection";
-                } else if (error instanceof ServerError) {
-                    msg = "Server Error";
-                } else if (error instanceof NetworkError) {
-                    msg = "Network Error";
-                } else {
-                    msg = "Unknown Error";
-                }
 
-                Toast.makeText(getActivity(),
-                        msg,
-                        Toast.LENGTH_LONG).show();
+                    @Override
+                    public void onNext(List<Comments> comments) {
+                        Log.d(TAG, "onNext "+comments.size());
+                        refreshUi(comments);
+                    }
+                });
+    }
+
+
+    private void refreshUi(List<Comments> comments) {
+        if (comments.size() > 0)
+            for (Comments comment : comments) {
+
+                mCommentsList.add(new CommentInfo(comment.getUser().getLogin(),
+                        comment.getBody()));
+
             }
-        });
+        else {
+            String login = "no comments";
+            String body = "";
+            mCommentsList.add(new CommentInfo(login,
+                    body));
+        }
 
-        //set tag to cancel the issue later
-        jreq.setTag("comments_list");
-
-        //post the request in volley queue
-        GitHubClient.getInstance().addToRequestQueue(jreq);
+        mIssueListRecyclerViewAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -175,6 +156,7 @@ public class CommentsListFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
 
-        GitHubClient.getInstance().cancelAllRequest("comments_list");
+        //GitHubClient.getInstance().cancelAllRequest("comments_list");
+        //TODO explore retrofit request cancel API
     }
 }

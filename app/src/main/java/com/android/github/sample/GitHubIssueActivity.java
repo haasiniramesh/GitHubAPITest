@@ -35,7 +35,7 @@ public class GitHubIssueActivity extends AppCompatActivity implements IssueListF
         FragmentManager mgr = getSupportFragmentManager();
         FragmentTransaction transaction = mgr.beginTransaction();
 
-        CommentsListFragment fragment = CommentsListFragment.newInstance(item.comments_url);
+        CommentsListFragment fragment = CommentsListFragment.newInstance(item.number);
         transaction.replace(R.id.container, fragment, "comments");
         transaction.addToBackStack("");
 

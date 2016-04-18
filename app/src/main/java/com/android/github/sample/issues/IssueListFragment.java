@@ -9,24 +9,20 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import com.android.github.sample.R;
 import com.android.github.sample.SimpleDividerItemDecoration;
+import com.android.github.sample.model.Issue;
 import com.android.github.sample.services.GitHubClient;
-import com.android.volley.NetworkError;
-import com.android.volley.NoConnectionError;
-import com.android.volley.Response;
-import com.android.volley.ServerError;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonArrayRequest;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.android.github.sample.services.IssueService;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import rx.Observable;
+import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
 
 /**
  * Issues List Fragment
@@ -35,6 +31,7 @@ import java.util.List;
  * Created by Ramesh on 3/27/2016.
  */
 public class IssueListFragment extends Fragment {
+    private final String TAG = IssueListFragment.class.getSimpleName();
 
     private OnListFragmentInteractionListener mListener;//listener for fragments event handler
     private IssueListAdapter mIssueListAdapter;//List Adapter
@@ -77,59 +74,46 @@ public class IssueListFragment extends Fragment {
 
     //Request GitHub Issues list
     private void requestIssueList() {
-        String url = "https://api.github.com/repos/rails/rails/issues?sort=updated";
 
-        JsonArrayRequest jreq = new JsonArrayRequest(url,
-                new Response.Listener<JSONArray>() {
+        IssueService issueService = GitHubClient.getInstance().getRetroFitInstance().create(IssueService.class);
+        Observable<List<Issue>> issueList = issueService.getIssues("rails", "rails");
+
+        issueList.subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<List<Issue>>() {
+                    @Override
+                    public void onCompleted() {
+                        Log.d(TAG, "onCompleted");
+                    }
 
                     @Override
-                    public void onResponse(JSONArray response) {
-                        for (int i = 0; i < response.length(); i++) {
-                            try {
-                                JSONObject jo = response.getJSONObject(i);
-                                String id = jo.getString("id");
-                                String title = jo.getString("title");
-                                String body = jo.getString("body");
-                                String comments_url = jo.getString("comments_url");
-
-                                mIssuesList.add(new IssueInfo(id,
-                                        title,
-                                        body, comments_url));
-
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                        }
-
-                        //refresh UI
-                        mIssueListAdapter.notifyDataSetChanged();
+                    public void onError(Throwable e) {
+                        Log.d(TAG, "onError "+ e.getMessage());
                     }
-                }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.e(IssueListFragment.class.getSimpleName(), "onErrorResponse " + error);
-                String msg = null;
-                if (error instanceof NoConnectionError) {
-                    msg = "No Connection";
-                } else if (error instanceof ServerError) {
-                    msg = "Server Error";
-                } else if (error instanceof NetworkError) {
-                    msg = "Network Error";
-                } else {
-                    msg = "Unknown Error";
-                }
 
-                Toast.makeText(getActivity(),
-                        msg,
-                        Toast.LENGTH_LONG).show();
-            }
-        });
+                    @Override
+                    public void onNext(List<Issue> response) {
+                        Log.d(TAG, "onNext "+response.size());
 
-        //set tag to cancel the issue later
-        jreq.setTag("issue_list");
+                        refreshUI(response);
+                    }
+                });
+    }
 
-        //post the request in volley queue
-        GitHubClient.getInstance().addToRequestQueue(jreq);
+    private void refreshUI(List<Issue> issueList){
+        for (Issue issue: issueList) {
+            String id = issue.getId().toString();
+            String title = issue.getTitle();
+            String body = issue.getBody();
+            String commentsURL = issue.getCommentsUrl();
+
+            mIssuesList.add(new IssueInfo(id,
+                    title,
+                    body, commentsURL, issue.getNumber().toString()));
+        }
+
+        //refresh UI
+        mIssueListAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -145,7 +129,7 @@ public class IssueListFragment extends Fragment {
         super.onDestroyView();
 
         //cancel the pending requests
-        GitHubClient.getInstance().cancelAllRequest("issue_list");
+        //TODO explore retrofit canceling the pending request
     }
 
     public interface OnListFragmentInteractionListener {
