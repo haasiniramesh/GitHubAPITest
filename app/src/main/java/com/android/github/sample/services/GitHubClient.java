@@ -1,47 +1,38 @@
 package com.android.github.sample.services;
 
-import com.android.github.sample.GitHubApplication;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.toolbox.Volley;
+import retrofit.GsonConverterFactory;
+import retrofit.Retrofit;
+import retrofit.RxJavaCallAdapterFactory;
 
 /**
- * GitHubClient single instance to Manage Volley Request Queue
+ * GitHubClient single instance to Manage N/W call
  *
  *
  * Created by Ramesh on 3/27/2016.
  */
 public class GitHubClient {
-    private RequestQueue mRequestQueue;//volley network request queue
+    private final String BASE_URL = "https://api.github.com";
+
+    private Retrofit mRetrofit;
 
     private GitHubClient() {
-        mRequestQueue = getRequestQueue();
+        mRetrofit = new Retrofit.Builder()
+                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create())
+                .baseUrl(BASE_URL)
+                .build();
+
     }
 
     private static class GitHubClientHelper {
-        private static GitHubClient INTANCE = new GitHubClient();
+        private static GitHubClient INSTANCE = new GitHubClient();
     }
 
     public static GitHubClient getInstance() {
-        return GitHubClientHelper.INTANCE;
+        return GitHubClientHelper.INSTANCE;
     }
 
-    //cancel volley request
-    public void cancelAllRequest(String tag) {
-        if (mRequestQueue != null) {
-            mRequestQueue.cancelAll(tag);
-        }
-    }
-
-    //add new request into volley queue
-    public <T> void addToRequestQueue(Request<T> req) {
-        getRequestQueue().add(req);
-    }
-
-    public RequestQueue getRequestQueue() {
-        if (mRequestQueue == null) {
-            mRequestQueue = Volley.newRequestQueue(GitHubApplication.getAppContext());
-        }
-        return mRequestQueue;
+    public Retrofit getRetroFitInstance(){
+        return GitHubClientHelper.INSTANCE.mRetrofit;
     }
 }
