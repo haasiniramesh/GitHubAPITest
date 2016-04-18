@@ -10,8 +10,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.android.github.sample.GitHubApplication;
 import com.android.github.sample.R;
 import com.android.github.sample.SimpleDividerItemDecoration;
+import com.android.github.sample.leakcanary.Box;
+import com.android.github.sample.leakcanary.Cat;
+import com.android.github.sample.leakcanary.Docker;
 import com.android.github.sample.model.Comments;
 import com.android.github.sample.services.GitHubClient;
 import com.android.github.sample.services.IssueService;
@@ -56,6 +60,9 @@ public class CommentsListFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        //TODO Test
+        createLeak();
+
         //retrieve the comments url from bundle argument
         if (getArguments() != null) {
             mNumber = getArguments().getString(ARG_COMMENT_URL);
@@ -64,6 +71,17 @@ public class CommentsListFragment extends Fragment {
         //get comments list
         requestCommentsList();
     }
+
+    //[[ Leakcanary test
+    private Box box;
+    private Cat schrodingerCat;
+    private void createLeak(){
+        box = new Box();
+        schrodingerCat = new Cat();
+        box.hiddenCat = schrodingerCat;
+        Docker.container = box;
+    }
+    //]] Leakcanary test
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -150,6 +168,12 @@ public class CommentsListFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+
+
+        //Docker.container = null;//TODO leak canary test
+
+        GitHubApplication.getInstance().getRefWatcher().watch(this);
+        GitHubApplication.getInstance().getRefWatcher().watch(schrodingerCat);
     }
 
     @Override
