@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.android.github.sample.GitHubApplication;
 import com.android.github.sample.R;
 import com.android.github.sample.SimpleDividerItemDecoration;
 import com.android.github.sample.model.Issue;
@@ -130,6 +131,13 @@ public class IssueListFragment extends Fragment {
 
         //cancel the pending requests
         //TODO explore retrofit canceling the pending request
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        GitHubApplication.getInstance().getRefWatcher().watch(this);
     }
 
     public interface OnListFragmentInteractionListener {

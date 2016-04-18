@@ -41,4 +41,11 @@ public class GitHubIssueActivity extends AppCompatActivity implements IssueListF
 
         transaction.commit();
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        GitHubApplication.getInstance().getRefWatcher().watch(this);
+    }
 }
