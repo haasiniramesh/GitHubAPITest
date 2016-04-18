@@ -1,30 +1,70 @@
 .gradle
+/local.properties
+/.idea/workspace.xml
+/.idea/libraries
 .DS_Store
 /build
+/captures
 
-
-#generated files
-bin/
-gen/
-
-#built application files
+# built application files
 *.apk
 *.ap_
 
-#files for the dex VM
+# files for the dex VM
 *.dex
 
+# Java class files
 *.class
 
-**/*.iml
+# generated files
+bin/
+gen/
 
-.idea/
-
-**/build/*
-
+# Local configuration file (sdk path, etc)
 local.properties
 
-*.swp
+# Eclipse project files
+.classpath
+.project
+
+# IntelliJ ignores
+.idea/
+**/*.iml
+*.ipr
+*.iws
+*/.idea/
+local.properties
+out
+
+# Generic Android ignores
+target
+gen-external-apklibs/
+
+#Maven
+target
+release.properties
+pom.xml.*
+
+# Folder containing all the Google Play APKs
+apks
+
+documents/oldVersionCode
+
+# generated files
+**/build/*
+
+# OSX files
+.DS_Store
+
+# Android Studio
+.gradle
+build/
 
 /*/out
-**/build/*
+/*/*/build
+/*/*/production
+*~
+*.swp
+
+# Local configuration file (sdk path, etc)
+local.properties
